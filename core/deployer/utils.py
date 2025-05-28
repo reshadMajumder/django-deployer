@@ -115,70 +115,39 @@ CMD ["/bin/sh", "-c", "python manage.py makemigrations && python manage.py migra
 
 
 
-# def ensure_react_dockerfile(project_dir):
-#     dockerfile_path = os.path.join(project_dir, "Dockerfile")
-#     nginx_conf_path = os.path.join(project_dir, "nginx.conf")
-
-#     with open(dockerfile_path, "w") as f:
-#         f.write('''
-# FROM node:18-alpine as build
-# WORKDIR /app
-# COPY . .
-# RUN npm install && npm run build
-
-# FROM nginx:alpine
-# COPY --from=build /app/build /usr/share/nginx/html
-# COPY nginx.conf /etc/nginx/conf.d/default.conf
-# ''')
-
-#     with open(nginx_conf_path, "w") as f:
-#         f.write('''
-# server {
-#     listen 80;
-#     server_name localhost;
-
-#     location / {
-#         root /usr/share/nginx/html;
-#         index index.html;
-#         try_files $uri /index.html;
-#     }
-# }
-# ''')
 
 
 
 
 def ensure_react_dockerfile(project_dir):
-    """Ensure a Dockerfile exists in the project root. If not, create a standard Django Dockerfile."""
+    """Ensure a Dockerfile exists in the project root. If not, create a standard React Dockerfile for Vite."""
     dockerfile_path = os.path.join(project_dir, "Dockerfile")
     nginx_conf_path = os.path.join(project_dir, "nginx.conf")
     if not os.path.exists(dockerfile_path):
         with open(dockerfile_path, "w") as f:
             f.write('''
-                FROM node:18-alpine as build
-                WORKDIR /app
-                COPY . .
-                RUN npm install && npm run build
+FROM node:18-alpine as build
+WORKDIR /app
+COPY . .
+RUN npm install && npm run build
 
-                FROM nginx:alpine
-                COPY --from=build /app/build /usr/share/nginx/html
-                COPY nginx.conf /etc/nginx/conf.d/default.conf
-                ''')
+FROM nginx:alpine
+COPY --from=build /app/dist /usr/share/nginx/html
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+''')
     with open(nginx_conf_path, "w") as f:
         f.write('''
-            server {
-                listen 80;
-                server_name localhost;
+server {
+    listen 80;
+    server_name localhost;
 
-                location / {
-                    root /usr/share/nginx/html;
-                    index index.html;
-                    try_files $uri /index.html;
-                }
-            }
-            ''')
-
-   
+    location / {
+        root /usr/share/nginx/html;
+        index index.html;
+        try_files $uri /index.html;
+    }
+}
+''')
 
 
 
