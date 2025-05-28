@@ -10,6 +10,7 @@ from .tasks import deploy_project,deploy_react_project
 
 
 class DeployProjectView(APIView):
+    
     def post(self, request):
         repo_url = request.data.get("repo_url")
         if not repo_url:
@@ -76,3 +77,18 @@ class DeployReactProjectView(APIView):
             **ReactProjectSerializer(project).data,
             "message": f"Project {project.name} is being deployed"
         })
+
+
+
+
+class DeployedReactProjectsView(APIView):
+    def get(self, request):
+        projects = ReactProject.objects.filter(status="deployed")
+        data = [
+            {
+                **ReactProjectSerializer(project).data,
+                "url": f"http://localhost:{project.port}/" if project.port else None
+            }
+            for project in projects
+        ]
+        return Response(data)
