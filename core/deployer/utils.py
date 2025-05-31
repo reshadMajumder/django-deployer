@@ -5,6 +5,7 @@ import subprocess
 import shutil
 import platform
 import stat
+import paramiko
 
 def find_free_port():
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
@@ -173,3 +174,17 @@ def generate_react_nginx_config(project_name, port):
         subprocess.run(["nginx", "-s", "reload"], check=True)
     except FileNotFoundError:
         raise RuntimeError("nginx not found. Please install nginx.")
+
+def ssh_and_run(ip, user, pem_path, commands, port=22):
+    key = paramiko.RSAKey.from_private_key_file(pem_path)
+    ssh = paramiko.SSHClient()
+    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    ssh.connect(ip, username=user, pkey=key, port=port)
+    results = []
+    for cmd in commands:
+        stdin, stdout, stderr = ssh.exec_command(cmd)
+        out = stdout.read().decode()
+        err = stderr.read().decode()
+        results.append((cmd, out, err))
+    ssh.close()
+    return results

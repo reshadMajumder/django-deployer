@@ -12,12 +12,10 @@ from .tasks import deploy_project,deploy_react_project
 class DeployProjectView(APIView):
     
     def post(self, request):
-        repo_url = request.data.get("repo_url")
-        if not repo_url:
-            return Response({"error": "repo_url is required"}, status=400)
-
-        name = repo_url.strip('/').split('/')[-1].replace('.git', '')
-        project = DjangoProject.objects.create(name=name, repo_url=repo_url)
+        serializer = DjangoProjectSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=400)
+        project = serializer.save()
         deploy_project(project.id)
         return Response({
             **DjangoProjectSerializer(project).data,

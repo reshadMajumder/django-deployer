@@ -13,6 +13,17 @@ class DjangoProject(models.Model):
     container_id = models.CharField(max_length=100, blank=True, null=True)
     port = models.IntegerField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    
+    # New fields for remote deployment
+    DEPLOY_MODES = [
+        ("local", "Local"),
+        ("remote", "Remote"),
+    ]
+    deploy_mode = models.CharField(max_length=10, choices=DEPLOY_MODES, default="local")
+    remote_ip = models.CharField(max_length=100, blank=True, null=True)
+    remote_user = models.CharField(max_length=100, blank=True, null=True)
+    remote_port = models.IntegerField(default=22, blank=True, null=True)
+    pem_file = models.FileField(upload_to="pem_keys/", blank=True, null=True)
 
 
 
