@@ -5,7 +5,7 @@ from celery import shared_task
 import os, subprocess
 
 @shared_task
-def deploy_project(project_id):
+def deploy_project(project_id, env_content=None):
     project = DjangoProject.objects.get(id=project_id)
     project.status = "deploying"
     project.save()
@@ -15,6 +15,10 @@ def deploy_project(project_id):
     project_dir = os.path.join(base_dir, project_root)
     try:
         clone_repo(project.repo_url, base_dir)
+        if env_content:
+            env_path = os.path.join(project_dir, ".env")
+            with open(env_path, "w") as f:
+                f.write(env_content)
         ensure_dockerfile(base_dir, project_root)
         port = find_free_port()
         image_tag = f"{project.name.lower()}_{project.id}_image"

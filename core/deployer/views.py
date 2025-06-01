@@ -14,12 +14,13 @@ class DeployProjectView(APIView):
     def post(self, request):
         repo_url = request.data.get("repo_url")
         project_root = request.data.get("project_root", "./")
+        env_content = request.data.get("env_content")  # Optional .env content
         if not repo_url:
             return Response({"error": "repo_url is required"}, status=400)
 
         name = repo_url.strip('/').split('/')[-1].replace('.git', '')
         project = DjangoProject.objects.create(name=name, repo_url=repo_url, project_root=project_root)
-        deploy_project(project.id)
+        deploy_project(project.id, env_content=env_content)
         return Response({
             **DjangoProjectSerializer(project).data,
             "message": f"Project {project.name} is being deployed"
