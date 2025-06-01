@@ -2,11 +2,13 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from .models import DjangoProject,ReactProject
+from .models import DjangoProject,ReactProject,Instance
 import subprocess
 import os
-from .serializers import DjangoProjectSerializer,ReactProjectSerializer
+from .serializers import DjangoProjectSerializer,ReactProjectSerializer,InstanceSerializer
 from .tasks import deploy_project,deploy_react_project,redeploy_project
+from rest_framework.parsers import MultiPartParser, FormParser
+import paramiko
 
 
 class DeployProjectView(APIView):
@@ -105,3 +107,36 @@ class RedeployProjectView(APIView):
             return Response({"error": "Project not found."}, status=404)
         except Exception as e:
             return Response({"error": str(e)}, status=500)
+
+class InstanceListCreateView(APIView):
+    parser_classes = (MultiPartParser, FormParser)
+    def get(self, request):
+        instances = Instance.objects.all()
+        serializer = InstanceSerializer(instances, many=True)
+        return Response(serializer.data)
+    def post(self, request):
+        serializer = InstanceSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=201)
+        return Response(serializer.errors, status=400)
+
+class InstanceTestConnectionView(APIView):
+    def post(self, request, pk):
+        try:
+            instance = Instance.objects.get(pk=pk)
+            key = None
+            if instance.pem_file:
+                key = paramiko.RSAKey.from_private_key(instance.pem_file.open('r'))
+            ssh = paramiko.SSHClient()
+            ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+            ssh.connect(
+                hostname=instance.remote_ip,
+                port=instance.remote_port,
+                username=instance.remote_user,
+                pkey=key
+            )
+            ssh.close()
+            return Response({"success": True, "message": "Connection successful."})
+        except Exception as e:
+            return Response({"success": False, "error": str(e)}, status=400)
