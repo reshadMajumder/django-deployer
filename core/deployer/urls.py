@@ -1,6 +1,6 @@
 # auto_deployer/urls.py
 from django.urls import path
-from deployer.views import DeployProjectView, ProjectControlView, DeployedProjectsView, DeployReactProjectView, DeployedReactProjectsView
+from deployer.views import DeployProjectView, ProjectControlView, DeployedProjectsView, DeployReactProjectView, DeployedReactProjectsView, RedeployProjectView
 
 urlpatterns = [
     path("deploy/", DeployProjectView.as_view()),
@@ -9,4 +9,5 @@ urlpatterns = [
 
     path("deploy-react/", DeployReactProjectView.as_view()),
     path("react-projects/", DeployedReactProjectsView.as_view()),
+    path("redeploy/<int:pk>/", RedeployProjectView.as_view()),
 ]

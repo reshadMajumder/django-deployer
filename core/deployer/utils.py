@@ -112,8 +112,8 @@ def ensure_dockerfile(project_dir, project_root):
         with open(dockerfile_path, "w") as f:
             f.write(f'''
 FROM python:3.10-slim
-ENV PYTHONDONTWRITEBYTECODE 1
-ENV PYTHONUNBUFFERED 1
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
 WORKDIR /app/{docker_project_root}
 COPY requirements.txt /app/{docker_project_root}/
 RUN pip install --upgrade pip && pip install -r requirements.txt
