@@ -13,6 +13,7 @@ class DjangoProject(models.Model):
     container_id = models.CharField(max_length=100, blank=True, null=True)
     port = models.IntegerField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    project_root = models.CharField(max_length=200, default="./")
 
 
 

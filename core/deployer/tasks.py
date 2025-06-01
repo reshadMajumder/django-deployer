@@ -11,9 +11,11 @@ def deploy_project(project_id):
     project.save()
 
     base_dir = f"/app/deployments/{project.name}"
+    project_root = project.project_root or "./"
+    project_dir = os.path.join(base_dir, project_root)
     try:
         clone_repo(project.repo_url, base_dir)
-        ensure_dockerfile(base_dir)
+        ensure_dockerfile(base_dir, project_root)
         port = find_free_port()
         image_tag = f"{project.name.lower()}_{project.id}_image"
         container_name = f"{project.name.lower()}_{project.id}_container"

@@ -83,23 +83,44 @@ def clone_repo(repo_url, dest_dir):
     except FileNotFoundError:
         raise RuntimeError("git not found. Please install git and ensure it's in your PATH.")
 
-def ensure_dockerfile(project_dir):
+def ensure_dockerfile(project_dir, project_root):
     """Ensure a Dockerfile exists in the project root. If not, create a standard Django Dockerfile."""
     dockerfile_path = os.path.join(project_dir, "Dockerfile")
+    req_path = os.path.join(project_dir, "requirements.txt")
+    # Remove leading ./ or .\ from project_root for Docker paths
+    docker_project_root = project_root.lstrip("./\\") or "."
+
+    # Auto-detect Django project module (folder with wsgi.py and settings.py) inside project_root
+    module_name = None
+    project_root_path = os.path.join(project_dir, docker_project_root)
+    if not os.path.isdir(project_root_path):
+        raise FileNotFoundError(f"Project root directory '{docker_project_root}' does not exist in the repository. Available directories: {os.listdir(project_dir)}")
+    for entry in os.listdir(project_root_path):
+        entry_path = os.path.join(project_root_path, entry)
+        if os.path.isdir(entry_path):
+            if os.path.isfile(os.path.join(entry_path, "wsgi.py")) and os.path.isfile(os.path.join(entry_path, "settings.py")):
+                module_name = entry
+                break
+    if not module_name:
+        # fallback: check if project_root itself is the module
+        if os.path.isfile(os.path.join(project_root_path, "wsgi.py")) and os.path.isfile(os.path.join(project_root_path, "settings.py")):
+            module_name = os.path.basename(project_root_path)
+        else:
+            module_name = "core"  # fallback default
+
     if not os.path.exists(dockerfile_path):
         with open(dockerfile_path, "w") as f:
-            f.write('''
+            f.write(f'''
 FROM python:3.10-slim
 ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1
-WORKDIR /app
-COPY requirements.txt /app/
+WORKDIR /app/{docker_project_root}
+COPY requirements.txt /app/{docker_project_root}/
 RUN pip install --upgrade pip && pip install -r requirements.txt
 COPY . /app/
-CMD ["/bin/sh", "-c", "python manage.py makemigrations && python manage.py migrate && python manage.py collectstatic --noinput && gunicorn --bind 0.0.0.0:8000 core.wsgi:application"]
+CMD ["gunicorn", "{module_name}.wsgi:application", "--bind", "0.0.0.0:8000"]
 ''')
     # Try to generate requirements.txt if not present
-    req_path = os.path.join(project_dir, "requirements.txt")
     if not os.path.exists(req_path):
         try:
             subprocess.run(["pipreqs", project_dir, "--force"], check=True)
