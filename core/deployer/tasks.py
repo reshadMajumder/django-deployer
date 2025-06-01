@@ -96,3 +96,37 @@ def deploy_react_project(project_id):
         project.save()
         raise e
     
+
+@shared_task
+def redeploy_project(project_id):
+    project = DjangoProject.objects.get(id=project_id)
+    base_dir = f"/app/deployments/{project.name}"
+    project_root = project.project_root or "./"
+    project_dir = os.path.join(base_dir, project_root)
+    port = project.port or find_free_port()
+    image_tag = f"{project.name.lower()}_{project.id}_image"
+    container_name = f"{project.name.lower()}_{project.id}_container"
+    try:
+        # Stop and remove old container if exists
+        if project.container_id:
+            subprocess.run(["docker", "rm", "-f", project.container_id], check=False)
+        # Pull latest code
+        subprocess.run(["git", "pull"], cwd=base_dir, check=True)
+        ensure_dockerfile(base_dir, project_root)
+        # Rebuild image
+        subprocess.run(["docker", "build", "-t", image_tag, "."], cwd=base_dir, check=True)
+        # Run new container
+        run = subprocess.run([
+            "docker", "run", "-d", "--name", container_name, "-p", f"{port}:8000", image_tag
+        ], capture_output=True, check=True, text=True, encoding="utf-8")
+        container_id = run.stdout.strip()
+        generate_nginx_config(project.name, port)
+        project.container_id = container_id
+        project.status = "deployed"
+        project.port = port
+        project.save()
+    except Exception as e:
+        project.status = "failed"
+        project.save()
+        raise e
+    

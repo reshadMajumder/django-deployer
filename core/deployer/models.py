@@ -1,10 +1,6 @@
 from django.db import models
 
-# Create your models here.
 
-
-# deployer/models.py
-from django.db import models
 
 class DjangoProject(models.Model):
     name = models.CharField(max_length=100)

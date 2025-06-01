@@ -6,7 +6,7 @@ from .models import DjangoProject,ReactProject
 import subprocess
 import os
 from .serializers import DjangoProjectSerializer,ReactProjectSerializer
-from .tasks import deploy_project,deploy_react_project
+from .tasks import deploy_project,deploy_react_project,redeploy_project
 
 
 class DeployProjectView(APIView):
@@ -94,3 +94,14 @@ class DeployedReactProjectsView(APIView):
             for project in projects
         ]
         return Response(data)
+
+class RedeployProjectView(APIView):
+    def post(self, request, pk):
+        try:
+            project = DjangoProject.objects.get(pk=pk)
+            redeploy_project(project.id)
+            return Response({"message": f"Redeployment for project {project.name} has started."})
+        except DjangoProject.DoesNotExist:
+            return Response({"error": "Project not found."}, status=404)
+        except Exception as e:
+            return Response({"error": str(e)}, status=500)
